@@ -10,7 +10,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (CommentSerializer, FollowSerializer,
                              GroupSerializer, PostSerializer)
-from posts.models import Group, Post, User
+from posts.models import Group, Post
 
 
 class CreateListViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -85,21 +85,15 @@ class FollowViewSet(CreateListViewSet):
     def get_queryset(self):
         """Итерация выборки объектов для модели подписок.
 
-        Из запроса получаем id пользователя, получаем из модели пользовтелей
-        пользователя по его id и передаем в выборку всех на кого подписан этот
-        пользовтель.
+        Из запроса получаем пользователя, передаем в выборку всех на кого
+        подписан этот пользовтель.
         """
-        user_id = self.request.user.id
-        user = get_object_or_404(User, id=user_id)
-        return user.follower.all()
+        return self.request.user.follower.all()
 
     def perform_create(self, serializer):
         """Добавлем пользователя в поле при подписке на другого пользователя.
 
-        Из запроса получаем id пользователя, получаем из модели пользовтелей
-        пользователя по его id и передаем в сериализатор в соответствующее поле
-        пользователя, сделавшего POST запрос.
+        Из запроса получаем пользователя и передаем в сериализатор в
+        соответствующее поле пользователя, сделавшего POST запрос.
         """
-        user_id = self.request.user.id
-        user = get_object_or_404(User, id=user_id)
-        serializer.save(user=user)
+        serializer.save(user=self.request.user)

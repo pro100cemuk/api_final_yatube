@@ -1,7 +1,8 @@
 """Импортируем модули с моделями, сериалайзерами и валидатором."""
-from posts.models import Comment, Follow, Group, Post, User
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
+from posts.models import Comment, Follow, Group, Post, User
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -71,27 +72,21 @@ class FollowSerializer(serializers.ModelSerializer):
 
         fields = ('user', 'following')
         model = Follow
-        validator = [
+        validators = [
             UniqueTogetherValidator(
                 queryset=Follow.objects.all(),
-                fields=['user', 'following']
-            )
+                fields=['user', 'following'],
+                message='Вы уже подписаны на данного пользователя',
+            ),
         ]
 
-    def validate(self, data):
-        """Кастомная валидация.
+    def validate_following(self, value):
+        """Кастомная валидация по полю following.
 
-        Если безопасный подписка на самого себя или повторная на пользователя,
-        на которого уже есть подписка, вызываем ошибку.
+        Если подписка на самого себя вызываем ошибку.
         """
-        user = self.context['request'].user
-        follow = data['following']
-        if follow == user:
+        if self.context.get('request').user == value:
             raise serializers.ValidationError(
                 'Запрещено подписываться на самого себя'
             )
-        elif Follow.objects.filter(user=user, following=follow).exists():
-            raise serializers.ValidationError(
-                'Вы уже подписаны на данного пользователя'
-            )
-        return data
+        return value
